@@ -703,7 +703,7 @@
                 const isCompact = (viewportWidth || window.innerWidth) < 900;
                 const margin = isCompact
                     ? { top: 44, right: 110, bottom: 22, left: 180 }
-                    : { top: 52, right: 120, bottom: 26, left: 210 };
+                    : { top: 52, right: 200, bottom: 26, left: 230 };
                 const width = Math.max(containerWidth - margin.left - margin.right, 320);
                 const viewWidth = width + margin.left + margin.right;
                 const height = 880 - margin.top - margin.bottom;
@@ -711,10 +711,10 @@
                 // Относительное позиционирование для текстовых элементов
                 // Разделяем margin на зоны: [название | отступ | значение | gap | узел]
                 const textLayout = {
-                    nameZoneWidth: Math.max(100, margin.left * 0.50),
-                    valueZoneWidth: Math.max(40, margin.left * 0.24),
-                    valueToNodeGap: Math.max(8, margin.left * 0.055),
-                    nameToValueGap: Math.max(18, margin.left * 0.09)
+                    valueZoneWidth: Math.max(40, Math.min(margin.left, margin.right) * 0.22),
+                    valueToNodeGap: Math.max(8, Math.min(margin.left, margin.right) * 0.055),
+                    leftNameGap: Math.max(18, margin.left * 0.12),
+                    rightNameGap: Math.max(18, margin.right * 0.12)
                 };
 
                 const svg = d3.select("#sankey-chart")
@@ -868,15 +868,15 @@
                     .filter(d => d.id !== 8) // Не для центрального узла
                     .attr("x", d => {
                         if (d.x0 < width / 2) {
-                            // Слева: название начинается в начале margin
-                            return d.x0 - textLayout.nameZoneWidth - textLayout.nameToValueGap - textLayout.valueZoneWidth;
+                            // Слева: якорь справа, текст тянется влево
+                            return d.x0 - textLayout.valueZoneWidth - textLayout.valueToNodeGap - textLayout.leftNameGap;
                         } else {
                             // Справа: название после значения
-                            return d.x1 + textLayout.valueToNodeGap + textLayout.valueZoneWidth + textLayout.nameToValueGap;
+                            return d.x1 + textLayout.valueToNodeGap + textLayout.valueZoneWidth + textLayout.rightNameGap;
                         }
                     })
                     .attr("y", d => d.y0)
-                    .attr("text-anchor", "start") // Все названия с левым выравниванием
+                    .attr("text-anchor", d => d.x0 < width / 2 ? "end" : "start")
                     .attr("class", "node-name-label")
                     .style("font-size", "11px")
                     .style("font-weight", "500")
@@ -1032,5 +1032,9 @@
             sourceObserver.observe(sourceSection);
         }
     </script>
+
+    <!-- Amplitude Analytics (API key is provided via amplitude-config.js which is gitignored) -->
+    <script src="amplitude-config.js" defer></script>
+    <script type="module" src="amplitude-init.js"></script>
 </body>
 </html>
