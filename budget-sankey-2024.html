@@ -71,6 +71,66 @@
             display: block;
         }
 
+        /* Индикатор горизонтальной прокрутки для мобильных */
+        .scroll-hint {
+            display: none;
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(59, 130, 246, 0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+            z-index: 100;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+            white-space: nowrap;
+        }
+
+        .scroll-hint.visible {
+            display: flex;
+        }
+
+        .scroll-hint.hidden {
+            opacity: 0;
+            transform: translateX(-50%) translateY(10px);
+        }
+
+        .scroll-hint-arrow {
+            display: inline-flex;
+            animation: slideRight 1.5s ease-in-out infinite;
+            font-size: 18px;
+        }
+
+        @keyframes slideRight {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            50% {
+                transform: translateX(8px);
+            }
+        }
+
+        /* Пульсирующая анимация для привлечения внимания */
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+            }
+            50% {
+                box-shadow: 0 4px 30px rgba(59, 130, 246, 0.7);
+            }
+        }
+
+        .scroll-hint {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
         @media (max-width: 768px) {
             .chart-container {
                 padding: 15px clamp(16px, 4vw, 42px);
@@ -411,6 +471,10 @@
         <div class="desktop-view">
             <div class="chart-container" id="chart-section">
                 <div id="sankey-chart"></div>
+                <div class="scroll-hint" id="scroll-hint">
+                    <span>Листайте вправо</span>
+                    <span class="scroll-hint-arrow">→</span>
+                </div>
             </div>
         </div>
 
@@ -1039,6 +1103,92 @@
         if (sourceSection) {
             sourceObserver.observe(sourceSection);
         }
+
+        // Управление подсказкой о горизонтальной прокрутке
+        (function() {
+            const scrollHint = document.getElementById('scroll-hint');
+            const chartContainer = document.querySelector('.chart-container');
+
+            if (!scrollHint || !chartContainer) return;
+
+            // Проверяем, мобильное ли устройство
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+
+            let hintShown = false;
+            let hideTimeout = null;
+
+            // Функция показа подсказки
+            function showScrollHint() {
+                if (!isMobile() || hintShown) return;
+
+                scrollHint.classList.add('visible');
+                scrollHint.classList.remove('hidden');
+
+                // Автоматически скрываем через 4 секунды
+                hideTimeout = setTimeout(() => {
+                    hideScrollHint();
+                }, 4000);
+            }
+
+            // Функция скрытия подсказки
+            function hideScrollHint() {
+                scrollHint.classList.add('hidden');
+                setTimeout(() => {
+                    scrollHint.classList.remove('visible');
+                }, 300);
+                hintShown = true;
+
+                if (hideTimeout) {
+                    clearTimeout(hideTimeout);
+                }
+            }
+
+            // Показываем подсказку когда контейнер появляется в viewport
+            const chartObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && isMobile() && !hintShown) {
+                        // Небольшая задержка перед показом
+                        setTimeout(() => {
+                            if (!hintShown) {
+                                showScrollHint();
+                            }
+                        }, 500);
+                    }
+                });
+            }, { threshold: 0.3 });
+
+            chartObserver.observe(chartContainer);
+
+            // Скрываем подсказку при первой прокрутке контейнера
+            let hasScrolled = false;
+            chartContainer.addEventListener('scroll', () => {
+                if (!hasScrolled && chartContainer.scrollLeft > 10) {
+                    hasScrolled = true;
+                    hideScrollHint();
+                }
+            }, { passive: true });
+
+            // Скрываем подсказку при касании (touchstart)
+            chartContainer.addEventListener('touchstart', () => {
+                if (scrollHint.classList.contains('visible')) {
+                    // Даем время на начало свайпа
+                    setTimeout(() => {
+                        if (chartContainer.scrollLeft > 5) {
+                            hideScrollHint();
+                        }
+                    }, 100);
+                }
+            }, { passive: true });
+
+            // Пересоздаем подсказку при изменении размера окна
+            window.addEventListener('resize', () => {
+                if (!isMobile() && scrollHint.classList.contains('visible')) {
+                    hideScrollHint();
+                }
+            });
+        })();
     </script>
 
     <!-- Amplitude Analytics (API key is provided via amplitude-config.js which is gitignored) -->
