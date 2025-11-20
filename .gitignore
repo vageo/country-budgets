@@ -1,3 +1,5 @@
 node_modules/
 package-lock.json
 amplitude-config.js
+.env.local
+.env
