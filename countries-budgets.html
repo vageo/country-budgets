@@ -307,15 +307,11 @@
         }
 
         .column-title {
-            font-size: 12px;
-            font-weight: 700;
-            fill: #111827;
-        }
-
-        .column-unit {
             font-size: 10px;
             font-weight: 600;
             fill: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         
         /* Улучшенные цвета для узлов */
@@ -466,13 +462,13 @@
                 <div class="stat-value">40.3&nbsp;₽ трлн</div>
                 <div class="stat-label">Общие доходы (план 2025)</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value">41.5&nbsp;₽ трлн</div>
-                <div class="stat-label">Общие расходы (план 2025)</div>
-            </div>
             <div class="stat-card deficit-card">
                 <div class="stat-value">1.2&nbsp;₽ трлн</div>
                 <div class="stat-label">Дефицит (0.5% ВВП)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">41.5&nbsp;₽ трлн</div>
+                <div class="stat-label">Общие расходы (план 2025)</div>
             </div>
         </div>
         
@@ -711,7 +707,7 @@
         // Мобильная версия
         // Sankey диаграмма (для всех устройств)
         {
-            const incomeItems = budgetData.income.filter(item => item.id !== "deficit-source");
+            const incomeItems = budgetData.income; // включая дефицит для баланса с расходами
             const expenseItems = budgetData.expenses;
 
             const incomeNodes = incomeItems.map((item, index) => ({
@@ -742,17 +738,20 @@
                 ]
             };
 
-            const incomePositiveTotalTrn = incomeItems.filter(item => item.value >= 0).reduce((sum, entry) => sum + entry.value, 0);
-            const incomeNegativeTotalTrn = incomeItems.filter(item => item.value < 0).reduce((sum, entry) => sum + Math.abs(entry.value), 0);
+            // Масштабирование: суммарная толщина доходов = суммарная толщина расходов
+            // Сумма |доходов| = 45.1 трлн (с акцизами как |value|)
+            // Сумма расходов = 41.5 трлн
+            // Масштабируем доходы, чтобы визуально = расходам
+            const incomeAbsTotal = incomeItems.reduce((sum, item) => sum + Math.abs(item.value), 0);
+            const expenseTotal = expenseItems.reduce((sum, item) => sum + item.value, 0);
 
-            const incomeScale = INCOME_TOTAL_B / ((incomePositiveTotalTrn - incomeNegativeTotalTrn) * 1000);
-            const expenseTotalTrn = expenseItems.reduce((sum, item) => sum + item.value, 0);
-            const expenseScale = EXPENSE_TOTAL_B / (expenseTotalTrn * 1000);
+            const baseScale = 1000; // конвертация трлн → млрд
+            const incomeScale = expenseTotal / incomeAbsTotal; // сжатие доходов до уровня расходов
 
             const incomeLinks = incomeNodes.map(entry => ({
                 source: entry.id,
                 target: centerNodeId,
-                value: Math.abs(entry.value) * 1000 * incomeScale,
+                value: Math.abs(entry.value) * baseScale * incomeScale,
                 displayValue: entry.value,
                 kind: entry.value < 0 ? "income-negative" : "income"
             }));
@@ -760,7 +759,7 @@
             const expenseLinks = expenseNodes.map((entry, index) => ({
                 source: centerNodeId,
                 target: entry.id,
-                value: expenseItems[index].value * 1000 * expenseScale,
+                value: expenseItems[index].value * baseScale,
                 displayValue: expenseItems[index].value,
                 kind: "expense"
             }));
@@ -793,8 +792,8 @@
                 const textLayout = {
                     valueZoneWidth: Math.max(40, Math.min(margin.left, margin.right) * 0.22),
                     valueToNodeGap: Math.max(8, Math.min(margin.left, margin.right) * 0.055),
-                    leftNameGap: Math.max(12, (margin.left + extraLeftSpace) * 0.04),
-                    rightNameGap: Math.max(18, margin.right * 0.12)
+                    leftNameGap: Math.max(8, (margin.left + extraLeftSpace) * 0.03),
+                    rightNameGap: Math.max(8, margin.right * 0.04) // уменьшен для симметрии с левой стороной
                 };
 
                 const svg = d3.select("#sankey-chart")
@@ -929,17 +928,17 @@
 
                 // Список длинных названий для разбиения на строки
                 const multilineNames = {
-                    "Национальная оборона": ["Национальная", "оборона"],
-                    "Социальная политика": ["Социальная", "политика"],
-                    "Национальная экономика": ["Национальная", "экономика"],
-                    "Национальная безопасность": ["Национальная", "безопасность"],
-                    "Межбюджетные трансферты": ["Межбюджетные", "трансферты"],
-                    "Обслуживание госдолга": ["Обслуживание", "госдолга"],
+                    // Доходы
                     "Прочие доходы": ["Прочие", "доходы"],
                     "Налог на прибыль": ["Налог на", "прибыль"],
                     "Доходы от нефти и газа": ["Доходы от", "нефти и газа"],
                     "Утилизационный сбор": ["Утилизационный", "сбор"],
-                    "Дивиденды и доходы ФНБ": ["Дивиденды и", "доходы ФНБ"]
+                    "Дивиденды и доходы ФНБ": ["Дивиденды и", "доходы ФНБ"],
+                    // Расходы
+                    "Социальная политика": ["Социальная", "политика"],
+                    "Обслуживание долга": ["Обслуживание", "долга"],
+                    "Здравоохранение": ["Здраво-", "охранение"],
+                    "Трансферты регионам": ["Трансферты", "регионам"]
                 };
 
                 // Названия узлов (снаружи, дальше всего от центра)
@@ -993,7 +992,7 @@
                         }
                     })
                     .attr("y", d => d.y0)
-                    .attr("dy", "1.1em")
+                    .attr("dy", "0.9em") // тот же dy что у названий для выравнивания по baseline
                     .attr("text-anchor", "start") // Все значения с левым выравниванием
                     .attr("class", "node-value-label")
                     .style("font-size", "11px")
@@ -1001,9 +1000,8 @@
                     .style("fill", "#6b7280")
                     .text(d => {
                         if (d.originalValue === undefined) return "";
-                        // Для акцизов (id = 7) показываем отрицательное значение
-                        const value = d.id === exciseNodeId ? -d.originalValue : d.originalValue;
-                        return value.toFixed(1);
+                        // originalValue уже содержит правильный знак (акцизы = -2.8)
+                        return d.originalValue.toFixed(1);
                     });
 
                 // Центральный узел - название сверху по центру
@@ -1015,55 +1013,62 @@
                     .attr("class", "central-amount")
                     .text(`${(EXPENSE_TOTAL_B / 1000).toFixed(1)} ₽ трлн`);
 
-                // Заголовки колонок со значениями "трлн ₽"
-                // Найти самые верхние узлы слева и справа
+                // Заголовки колонок: 4 отдельных заголовка
+                // Слева: "Доходы" над названиями, "трлн ₽" над числами
+                // Справа: "трлн ₽" над числами, "Расходы" над названиями
                 const leftNodes = nodes.filter(d => d.x0 < width / 2 && d.id !== centerNodeId);
                 const rightNodes = nodes.filter(d => d.x0 > width / 2 && d.id !== centerNodeId);
 
-                const columnHeaderOffset = isCompact ? 32 : 42;
+                // Отступ заголовков от первой строки данных
+                // Данные: y = node.y0, dy = 0.9em (~10px от y0)
+                // Заголовок: y = node.y0 - gap, нужен визуальный отступ между строками
+                const headerGap = isCompact ? 28 : 32; // gap для чёткого визуального разделения
 
                 if (leftNodes.length > 0) {
                     const topLeftNode = leftNodes.reduce((min, node) => node.y0 < min.y0 ? node : min);
-                    const headerGroup = svg.append("text")
-                        .attr("x", topLeftNode.x0 - textLayout.valueZoneWidth - textLayout.valueToNodeGap)
-                        .attr("y", Math.max(0, topLeftNode.y0 - columnHeaderOffset))
-                        .attr("text-anchor", "start");
+                    // Данные начинаются с y0, заголовок должен быть выше на headerGap
+                    const headerY = topLeftNode.y0 - headerGap;
 
-                    // Первая строка - "Доходы"
-                    headerGroup.append("tspan")
-                        .attr("x", topLeftNode.x0 - textLayout.valueZoneWidth - textLayout.valueToNodeGap)
-                        .attr("dy", "0em")
+                    // Заголовок "Доходы" — над названиями статей (text-anchor: end)
+                    svg.append("text")
+                        .attr("x", topLeftNode.x0 - textLayout.valueZoneWidth - textLayout.valueToNodeGap - textLayout.leftNameGap)
+                        .attr("y", headerY)
+                        .attr("dy", "0.9em") // такой же dy как у данных для выравнивания
+                        .attr("text-anchor", "end")
                         .attr("class", "column-title")
                         .text("Доходы");
 
-                    // Вторая строка - "трлн ₽" с отступом
-                    headerGroup.append("tspan")
+                    // Заголовок "трлн ₽" — над числами (text-anchor: start)
+                    svg.append("text")
                         .attr("x", topLeftNode.x0 - textLayout.valueZoneWidth - textLayout.valueToNodeGap)
-                        .attr("dy", "1.3em")
-                        .attr("class", "column-unit")
+                        .attr("y", headerY)
+                        .attr("dy", "0.9em")
+                        .attr("text-anchor", "start")
+                        .attr("class", "column-title")
                         .text("трлн ₽");
                 }
 
                 if (rightNodes.length > 0) {
                     const topRightNode = rightNodes.reduce((min, node) => node.y0 < min.y0 ? node : min);
-                    const headerGroup = svg.append("text")
-                        .attr("x", topRightNode.x1 + textLayout.valueToNodeGap)
-                        .attr("y", Math.max(0, topRightNode.y0 - columnHeaderOffset))
-                        .attr("text-anchor", "start");
+                    const headerY = topRightNode.y0 - headerGap;
 
-                    // Первая строка - "Расходы"
-                    headerGroup.append("tspan")
+                    // Заголовок "трлн ₽" — над числами (text-anchor: start)
+                    svg.append("text")
                         .attr("x", topRightNode.x1 + textLayout.valueToNodeGap)
-                        .attr("dy", "0em")
+                        .attr("y", headerY)
+                        .attr("dy", "0.9em")
+                        .attr("text-anchor", "start")
+                        .attr("class", "column-title")
+                        .text("трлн ₽");
+
+                    // Заголовок "Расходы" — над названиями статей (text-anchor: start)
+                    svg.append("text")
+                        .attr("x", topRightNode.x1 + textLayout.valueToNodeGap + textLayout.valueZoneWidth + textLayout.rightNameGap)
+                        .attr("y", headerY)
+                        .attr("dy", "0.9em")
+                        .attr("text-anchor", "start")
                         .attr("class", "column-title")
                         .text("Расходы");
-
-                    // Вторая строка - "трлн ₽" с отступом
-                    headerGroup.append("tspan")
-                        .attr("x", topRightNode.x1 + textLayout.valueToNodeGap)
-                        .attr("dy", "1.3em")
-                        .attr("class", "column-unit")
-                        .text("трлн ₽");
                 }
             }
 
