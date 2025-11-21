@@ -749,6 +749,14 @@
     </div>
 
     <script>
+        // Ждем полной загрузки DOM и библиотек
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeChart);
+        } else {
+            initializeChart();
+        }
+
+        function initializeChart() {
         // Данные бюджета 2025
         const budgetData = {
             income: [
@@ -784,7 +792,7 @@
 
         // Мобильная версия
         // Sankey диаграмма (для всех устройств)
-        {
+        (function() {
             const incomeItems = budgetData.income; // включая дефицит для баланса с расходами
             const expenseItems = budgetData.expenses;
 
@@ -1160,12 +1168,17 @@
                 renderSankey();
             }, 250);
         });
-        }
+        })();
 
         // Показ/скрытие плавающей навигации
         const floatingNav = document.querySelector('.floating-nav');
         const expensesSection = document.getElementById('expenses-section');
 
+        // Проверка поддержки IntersectionObserver
+        if (!window.IntersectionObserver) {
+            // Fallback для старых браузеров - показываем кнопки всегда
+            if (floatingNav) floatingNav.classList.add('visible');
+        } else {
         // Показываем плавающую навигацию когда пользователь доскроллил до раздела расходов
         const expensesObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -1200,6 +1213,7 @@
 
         if (sourceSection) {
             sourceObserver.observe(sourceSection);
+        }
         }
 
         // Управление подсказкой о горизонтальной прокрутке
@@ -1274,6 +1288,7 @@
             // Первичная проверка после отрисовки
             setTimeout(reevaluateHint, 400);
         })();
+        } // конец initializeChart
     </script>
 
     <!-- Amplitude Analytics (API key loaded from Supabase Edge Function) -->
