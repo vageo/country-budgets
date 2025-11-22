@@ -29,7 +29,7 @@
 2. Нажмите **Add secret**
 3. Введите:
    - **Name:** `AMPLITUDE_API_KEY`
-   - **Value:** `2498cd94a1675a04df5d84ff8e847fb6`
+   - **Value:** `YOUR_AMPLITUDE_API_KEY`
 4. Нажмите **Save**
 
 #### Шаг 3: Проверьте работу функции
@@ -38,13 +38,13 @@
 2. Вы должны увидеть JSON с ключом:
    ```json
    {
-     "amplitudeKey": "2498cd94a1675a04df5d84ff8e847fb6"
+     "amplitudeKey": "YOUR_AMPLITUDE_API_KEY"
    }
    ```
 
 #### Шаг 4: Протестируйте на вашем сайте
 
-1. Откройте [budget-sankey-2024.html](budget-sankey-2024.html) в браузере
+1. Откройте [countries-budgets.html](countries-budgets.html) в браузере
 2. Откройте консоль браузера (F12 → Console)
 3. Вы должны увидеть:
    ```
@@ -86,7 +86,7 @@ supabase functions deploy get-config
 #### Добавление секретов
 
 ```bash
-supabase secrets set AMPLITUDE_API_KEY=2498cd94a1675a04df5d84ff8e847fb6
+supabase secrets set AMPLITUDE_API_KEY=YOUR_AMPLITUDE_API_KEY
 ```
 
 #### Проверка
@@ -142,7 +142,7 @@ supabase functions deploy get-config
 
 ```javascript
 // amplitude-config.js
-window.AMPLITUDE_API_KEY = '2498cd94a1675a04df5d84ff8e847fb6';
+window.AMPLITUDE_API_KEY = 'YOUR_AMPLITUDE_API_KEY';
 ```
 
 Скрипт [amplitude-init.js](amplitude-init.js) автоматически использует этот файл, если Supabase недоступен.
@@ -154,7 +154,7 @@ window.AMPLITUDE_API_KEY = '2498cd94a1675a04df5d84ff8e847fb6';
 ## Архитектура
 
 ```
-Браузер (budget-sankey-2024.html)
+Браузер (countries-budgets.html)
     ↓
     fetch('https://vwfzeutapgquuysjqoec.supabase.co/functions/v1/get-config')
     ↓
